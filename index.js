@@ -49,6 +49,12 @@ async function run() {
       const result = await groupCollection.updateOne(query, updatedDoc);
       res.send(result);
     });
+    app.delete("/groups/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await groupCollection.deleteOne(query);
+      res.send(result);
+    });
     await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
