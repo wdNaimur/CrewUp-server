@@ -5,6 +5,7 @@ const cors = require("cors");
 const app = express();
 const port = process.env.PORT || 3000;
 
+// MiddleWare
 app.use(cors());
 app.use(express.json());
 
@@ -20,9 +21,9 @@ const client = new MongoClient(uri, {
 
 async function run() {
   try {
-    await client.connect();
+    // await client.connect();
     const groupCollection = client.db("groupDB").collection("groups");
-
+    //Need to Sort
     app.get("/groups", async (req, res) => {
       const query = groupCollection.find();
       const result = await query.toArray();
@@ -66,11 +67,12 @@ async function run() {
       const result = await groupCollection.deleteOne(query);
       res.send(result);
     });
-    await client.db("admin").command({ ping: 1 });
+    // await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
     );
   } finally {
+    //  await client.close();
   }
 }
 
