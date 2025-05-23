@@ -28,6 +28,17 @@ async function run() {
       const result = await query.toArray();
       res.send(result);
     });
+    // Only Active Group and Only 6
+    app.get("/groups/featured", async (req, res) => {
+      const now = new Date();
+      const allGroups = await groupCollection.find().toArray();
+      const activeGroups = allGroups.filter((group) => {
+        const startDateTime = new Date(`${group.startDate}T${group.time}`);
+        return startDateTime > now;
+      });
+      res.send(activeGroups.slice(0, 6));
+    });
+
     app.get("/groups/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
