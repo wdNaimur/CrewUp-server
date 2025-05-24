@@ -1,4 +1,4 @@
-# 🚀 Crew Up Backend
+# Crew Up Backend
 
 This is the backend server for the Crew Up platform — handling group data and API requests.
 
@@ -14,7 +14,7 @@ This is the backend server for the Crew Up platform — handling group data and 
 
 ---
 
-## 🚩 API Endpoints
+## 🔥 API Endpoints
 
 | Method | Endpoint           | Description                      |
 | ------ | ------------------ | -------------------------------- |
