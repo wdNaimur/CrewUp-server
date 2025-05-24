@@ -21,9 +21,7 @@ const client = new MongoClient(uri, {
 
 async function run() {
   try {
-    // await client.connect();
     const groupCollection = client.db("groupDB").collection("groups");
-    //Need to Sort
     app.get("/groups", async (req, res) => {
       const query = groupCollection.find();
       const result = await query.toArray();
@@ -72,7 +70,6 @@ async function run() {
       "Pinged your deployment. You successfully connected to MongoDB!"
     );
   } finally {
-    //  await client.close();
   }
 }
 
