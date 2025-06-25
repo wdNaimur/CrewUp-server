@@ -121,35 +121,44 @@ async function run() {
     });
     //Booking Process
     app.post("/bookings", async (req, res) => {
-      const bookingData = req.body;
-      const { groupId, userEmail } = bookingData;
+      const { groupId, userEmail } = req.body;
+
+      if (!groupId || !userEmail) {
+        return res.status(400).json({ error: "Missing groupId or userEmail." });
+      }
 
       try {
-        if (!groupId || !userEmail) {
-          return res
-            .status(400)
-            .send({ error: "Missing groupId or userEmail" });
+        const groupObjectId = new ObjectId(groupId);
+        const group = await groupCollection.findOne({ _id: groupObjectId });
+
+        if (!group) {
+          return res.status(404).json({ error: "Group not found." });
         }
 
-        // 2. Push booking info into the group document
-        await groupCollection.updateOne(
-          { _id: new ObjectId(groupId) },
-          {
-            $push: {
-              bookings: {
-                userEmail: userEmail,
-                bookedAt: new Date(),
-              },
-            },
-          }
+        const alreadyBooked = group.bookings?.some(
+          (booking) => booking.userEmail === userEmail
         );
 
-        res.send({
-          message: "Booking saved and group updated",
-        });
+        if (alreadyBooked) {
+          return res
+            .status(409)
+            .json({ error: "You have already booked this group." });
+        }
+
+        const bookingEntry = {
+          userEmail,
+          bookedAt: new Date(),
+        };
+
+        await groupCollection.updateOne(
+          { _id: groupObjectId },
+          { $push: { bookings: bookingEntry } }
+        );
+
+        res.status(200).json({ message: "Booking successful." });
       } catch (error) {
         console.error("Booking error:", error);
-        res.status(500).send({ error: "Internal server error" });
+        res.status(500).json({ error: "Internal server error." });
       }
     });
 
