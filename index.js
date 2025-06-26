@@ -90,9 +90,9 @@ async function run() {
 
         for (let group of groups) {
           const bookings = await bookingCollection
-            .find({ groupId: group._id.toString })
+            .find({ groupId: group._id.toString() })
             .toArray();
-          group.bookings = bookings; // add bookings to each group object
+          group.bookings = bookings;
         }
 
         res.send(groups);
@@ -115,37 +115,92 @@ async function run() {
       });
       res.send(activeGroups.slice(0, 6));
     });
-
+    // Group Details
     app.get("/groups/:id", async (req, res) => {
       const id = req.params.id;
       const reqEmail = req.query.email;
-      const queryGroup = { _id: new ObjectId(id) };
-      const result = await groupCollection.findOne(queryGroup);
-      console.log(reqEmail);
-      console.log(result.bookings);
-      console.log(result);
-      const alreadyBooked = result.bookings?.some(
-        (booking) => booking.userEmail === reqEmail
-      );
-      result.alreadyBooked = alreadyBooked;
-      console.log("alreadyBooked", alreadyBooked);
-      res.send(result);
+
+      if (!ObjectId.isValid(id)) {
+        return res.status(400).json({ error: "Invalid group ID" });
+      }
+
+      try {
+        const group = await groupCollection.findOne({ _id: new ObjectId(id) });
+
+        if (!group) {
+          return res.status(404).json({ error: "Group not found" });
+        }
+
+        // Fetch all bookings related to this group
+        const bookings = await bookingCollection
+          .find({ groupId: id }) // stored as string (or use new ObjectId(id) if stored as ObjectId)
+          .toArray();
+
+        // Check if current user has already booked
+        const alreadyBooked = bookings.some(
+          (booking) => booking.userEmail === reqEmail
+        );
+
+        // Attach dynamic data
+        group.bookings = bookings;
+        group.alreadyBooked = alreadyBooked;
+
+        res.send(group);
+      } catch (error) {
+        console.error("Error fetching group details:", error);
+        res.status(500).json({ error: "Internal server error" });
+      }
     });
+    // create new Group
     app.post("/groups", async (req, res) => {
       const newGroup = req.body;
       const result = await groupCollection.insertOne(newGroup);
       res.send(result);
     });
+    // Update New Group
     app.patch("/groups/:id", async (req, res) => {
       const id = req.params.id;
-      const query = { _id: new ObjectId(id) };
       const updatedGroup = req.body;
-      const updatedDoc = {
-        $set: updatedGroup,
-      };
-      const result = await groupCollection.updateOne(query, updatedDoc);
-      res.send(result);
+
+      if (!ObjectId.isValid(id)) {
+        return res.status(400).json({ error: "Invalid group ID" });
+      }
+
+      try {
+        const query = { _id: new ObjectId(id) };
+        const group = await groupCollection.findOne(query);
+
+        if (!group) {
+          return res.status(404).json({ error: "Group not found" });
+        }
+
+        // Count current bookings for this group
+        const currentBookings = await bookingCollection.countDocuments({
+          groupId: id,
+        });
+
+        // If updating maxMembers and it’s less than already booked members, reject it
+        if (
+          updatedGroup.maxMembers &&
+          parseInt(updatedGroup.maxMembers) < currentBookings
+        ) {
+          return res.status(400).json({
+            error: `Cannot set max members to ${updatedGroup.maxMembers} — already ${currentBookings} members booked.`,
+          });
+        }
+
+        const updatedDoc = {
+          $set: updatedGroup,
+        };
+
+        const result = await groupCollection.updateOne(query, updatedDoc);
+        res.send(result);
+      } catch (error) {
+        console.error("Failed to update group:", error);
+        res.status(500).json({ error: "Internal server error" });
+      }
     });
+
     app.delete("/groups/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
