@@ -76,6 +76,7 @@ async function run() {
         res.status(500).send({ error: "Internal server error" });
       }
     });
+    // Get user Groups
     app.get("/myGroup", async (req, res) => {
       const { email } = req.query;
 
@@ -84,13 +85,17 @@ async function run() {
       }
 
       try {
+        // Fetch groups for the user, sorted by startDate ascending
         const groups = await groupCollection
           .find({ userEmail: email })
+          .sort({ startDate: -1 }) // change 1 to -1 for descending
           .toArray();
 
         for (let group of groups) {
+          // Fetch bookings for the group, sorted by bookedAt descending
           const bookings = await bookingCollection
             .find({ groupId: group._id.toString() })
+            .sort({ bookedAt: -1 })
             .toArray();
           group.bookings = bookings;
         }
