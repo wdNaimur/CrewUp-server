@@ -209,7 +209,7 @@ async function run() {
     });
     //All Booking Api
     // get bookings data user specific
-    app.get("/bookings", async (req, res) => {
+    app.get("/myBookings", async (req, res) => {
       const email = req.query.email;
 
       if (!email) {
@@ -224,7 +224,25 @@ async function run() {
           .sort({ bookedAt: -1 })
           .toArray();
 
-        res.status(200).json(bookings);
+        const groupIds = bookings.map(
+          (booking) => new ObjectId(booking.groupId)
+        );
+
+        const groups = await groupCollection
+          .find({ _id: { $in: groupIds } })
+          .toArray();
+
+        const enrichedBookings = bookings.map((booking) => {
+          const group = groups.find(
+            (g) => g._id.toString() === booking.groupId
+          );
+          return {
+            ...booking,
+            group,
+          };
+        });
+
+        res.status(200).json(enrichedBookings);
       } catch (error) {
         console.error("Failed to fetch bookings:", error);
         res.status(500).json({ error: "Internal server error." });
@@ -284,6 +302,34 @@ async function run() {
       } catch (error) {
         console.error("Booking error:", error);
         res.status(500).json({ error: "Internal server error." });
+      }
+    });
+    // DELETE /bookings/:id
+    app.delete("/bookings/:id", async (req, res) => {
+      const id = req.params.id;
+
+      try {
+        const query = { _id: new ObjectId(id) };
+        const result = await bookingCollection.deleteOne(query);
+
+        if (result.deletedCount > 0) {
+          res.status(200).json({
+            success: true,
+            message: "Booking deleted",
+            deletedCount: result.deletedCount,
+          });
+        } else {
+          res.status(404).json({
+            success: false,
+            message: "Booking not found or already deleted",
+            deletedCount: 0,
+          });
+        }
+      } catch (error) {
+        console.error("Error deleting booking:", error);
+        res
+          .status(500)
+          .json({ success: false, message: "Internal Server Error" });
       }
     });
 
