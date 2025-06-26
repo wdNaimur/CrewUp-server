@@ -23,6 +23,7 @@ async function run() {
   try {
     const groupCollection = client.db("groupDB").collection("groups");
     const userCollection = client.db("userDB").collection("user");
+    const bookingCollection = client.db("bookingDB").collection("bookings");
     // Create and update user info
     app.post("/users", async (req, res) => {
       const newUserData = req.body;
@@ -75,6 +76,31 @@ async function run() {
         res.status(500).send({ error: "Internal server error" });
       }
     });
+    app.get("/myGroup", async (req, res) => {
+      const { email } = req.query;
+
+      if (!email) {
+        return res.status(400).json({ error: "Missing user email in query" });
+      }
+
+      try {
+        const groups = await groupCollection
+          .find({ userEmail: email })
+          .toArray();
+
+        for (let group of groups) {
+          const bookings = await bookingCollection
+            .find({ groupId: group._id.toString })
+            .toArray();
+          group.bookings = bookings; // add bookings to each group object
+        }
+
+        res.send(groups);
+      } catch (error) {
+        console.error("Failed to fetch groups:", error);
+        res.status(500).json({ error: "Internal server error" });
+      }
+    });
 
     // Only Active Group and Only 6
     app.get("/groups/featured", async (req, res) => {
@@ -93,9 +119,16 @@ async function run() {
     app.get("/groups/:id", async (req, res) => {
       const id = req.params.id;
       const reqEmail = req.query.email;
-      const query = { _id: new ObjectId(id) };
-      const result = await groupCollection.findOne(query);
-      result.book = true;
+      const queryGroup = { _id: new ObjectId(id) };
+      const result = await groupCollection.findOne(queryGroup);
+      console.log(reqEmail);
+      console.log(result.bookings);
+      console.log(result);
+      const alreadyBooked = result.bookings?.some(
+        (booking) => booking.userEmail === reqEmail
+      );
+      result.alreadyBooked = alreadyBooked;
+      console.log("alreadyBooked", alreadyBooked);
       res.send(result);
     });
     app.post("/groups", async (req, res) => {
@@ -119,9 +152,40 @@ async function run() {
       const result = await groupCollection.deleteOne(query);
       res.send(result);
     });
-    //Booking Process
+    //All Booking Api
+    // get bookings data user specific
+    app.get("/bookings", async (req, res) => {
+      const email = req.query.email;
+
+      if (!email) {
+        return res
+          .status(400)
+          .json({ error: "Email query parameter is required." });
+      }
+
+      try {
+        const bookings = await bookingCollection
+          .find({ userEmail: email })
+          .sort({ bookedAt: -1 })
+          .toArray();
+
+        res.status(200).json(bookings);
+      } catch (error) {
+        console.error("Failed to fetch bookings:", error);
+        res.status(500).json({ error: "Internal server error." });
+      }
+    });
+
     app.post("/bookings", async (req, res) => {
-      const { groupId, userEmail } = req.body;
+      const {
+        groupId,
+        userEmail,
+        groupTitle,
+        bookedAt,
+        details,
+        category,
+        meetingType,
+      } = req.body;
 
       if (!groupId || !userEmail) {
         return res.status(400).json({ error: "Missing groupId or userEmail." });
@@ -135,9 +199,11 @@ async function run() {
           return res.status(404).json({ error: "Group not found." });
         }
 
-        const alreadyBooked = group.bookings?.some(
-          (booking) => booking.userEmail === userEmail
-        );
+        // Check if user already booked this group
+        const alreadyBooked = await bookingCollection.findOne({
+          groupId,
+          userEmail,
+        });
 
         if (alreadyBooked) {
           return res
@@ -145,15 +211,19 @@ async function run() {
             .json({ error: "You have already booked this group." });
         }
 
+        // Build booking entry with all fields
         const bookingEntry = {
+          groupId,
           userEmail,
-          bookedAt: new Date(),
+          groupTitle,
+          bookedAt: bookedAt ? new Date(bookedAt) : new Date(),
+          details,
+          category,
+          meetingType,
         };
 
-        await groupCollection.updateOne(
-          { _id: groupObjectId },
-          { $push: { bookings: bookingEntry } }
-        );
+        // Insert booking entry
+        await bookingCollection.insertOne(bookingEntry);
 
         res.status(200).json({ message: "Booking successful." });
       } catch (error) {
