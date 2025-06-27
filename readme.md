@@ -2,7 +2,6 @@
 
 Backend server for **CrewUp**, a community-driven platform to discover, join, and manage local hobby-based groups. This server handles group creation, bookings, user-specific data, and API endpoints.
 
----
 
 ## 🚀 Tech Stack
 
@@ -12,7 +11,6 @@ Backend server for **CrewUp**, a community-driven platform to discover, join, an
 - **dotenv** – Environment variable management  
 - **CORS** – Cross-origin request handling  
 
----
 
 ## 🔐 Key Features
 
@@ -24,7 +22,6 @@ Backend server for **CrewUp**, a community-driven platform to discover, join, an
 - Input validation and error handling  
 - Environment-based secure config via `.env`  
 
----
 
 ## 🔥 API Endpoints
 
@@ -61,46 +58,43 @@ Backend server for **CrewUp**, a community-driven platform to discover, join, an
 | POST   | `/bookings`      | Create a new booking with duplicate check |
 | DELETE | `/bookings/:id`  | Delete a booking by ID                    |
 
----
 
 ## 📦 Dependencies
 
 `express`, `mongodb`, `cors`, `dotenv`
 
----
-
 ## 🛠️ CrewUp Server – Local Setup Instructions
 
 - **Clone the repository and install dependencies:**
 
-  <!-- ```bash -->
+  ```bash
   git clone https://github.com/wdNaimur/CrewUp-server.git  
   cd CrewUp-server  
   npm install
-  <!-- ``` -->
+  ```
 
 - **Create a `.env` file** in the project root and add:
 
-  <!-- ```env -->
+   ```env
   MONGODB_URI=your_mongodb_connection_string
-  <!-- ``` -->
+  ```
 
 - **Run the development server:**
 
-  <!-- ```bash -->
+ ```bash
   npm run dev
-  <!-- ``` -->
+   ```
 
 - **Access the server locally at:**  
   `http://localhost:3000`
 
----
+
 
 ## 🌐 Live Project Links
 
 - 🔗 [CrewUp Live](https://crewup.web.app/)  
 - 💻 [Client Repository](https://github.com/wdNaimur/crewup-client)
 
----
+
 
 <p align="center"><sub><strong>Designed & Developed by Md. Naimur Rahman</strong></sub></p>
