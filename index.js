@@ -68,14 +68,23 @@ async function run() {
     // Get all Group
     app.get("/groups", async (req, res) => {
       try {
-        const query = groupCollection.find().sort({ _id: -1 });
-        const result = await query.toArray();
+        const sortOrder = req.query.sort; // 'latest' or 'oldest'
+
+        // Newest first (descending), Oldest first (ascending)
+        const sortOption = sortOrder === "oldest" ? 1 : -1;
+
+        const result = await groupCollection
+          .find()
+          .sort({ _id: sortOption })
+          .toArray();
+
         res.send(result);
       } catch (error) {
         console.error("Failed to fetch groups:", error);
         res.status(500).send({ error: "Internal server error" });
       }
     });
+
     // Get user Groups
     app.get("/myGroup", async (req, res) => {
       const { email } = req.query;
