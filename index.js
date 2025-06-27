@@ -211,22 +211,23 @@ async function run() {
     // Get groups by category
     app.get("/categories/:category", async (req, res) => {
       const { category } = req.params;
-      const { email } = req.query;
 
       try {
-        const filter = { category };
-        if (email) {
-          filter.userEmail = email;
-        }
-
         const groups = await groupCollection
-          .find(filter)
+          .find({ category })
           .sort({ _id: -1 })
           .toArray();
+
+        if (!groups.length) {
+          return res
+            .status(404)
+            .json({ message: "No groups found in this category." });
+        }
+
         res.send(groups);
       } catch (error) {
         console.error("Error fetching category groups:", error);
-        res.status(500).json({ error: "Failed to fetch category groups" });
+        res.status(500).json({ error: "Failed to fetch category groups." });
       }
     });
 
