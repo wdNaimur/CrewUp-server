@@ -24,6 +24,9 @@ async function run() {
     const groupCollection = client.db("groupDB").collection("groups");
     const userCollection = client.db("userDB").collection("user");
     const bookingCollection = client.db("bookingDB").collection("bookings");
+    function escapeRegex(text) {
+      return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
+    }
     // Create and update user info
     app.post("/users", async (req, res) => {
       const newUserData = req.body;
@@ -63,18 +66,58 @@ async function run() {
         res.status(500).send({ error: "Internal server error" });
       }
     });
+    // Overview dashboard
+    app.get("/overview", async (req, res) => {
+      const { email } = req.query;
+
+      if (!email) {
+        return res.status(400).json({ error: "Missing user email in query" });
+      }
+
+      try {
+        // Count groups created by user
+        const groupsCreatedCount = await groupCollection.countDocuments({
+          userEmail: email,
+        });
+
+        // Count bookings made by user
+        const groupsAppliedCount = await bookingCollection.countDocuments({
+          userEmail: email,
+        });
+
+        // You can add more aggregates here if needed
+
+        res.json({
+          groupsCreated: groupsCreatedCount,
+          groupsApplied: groupsAppliedCount,
+        });
+      } catch (error) {
+        console.error("Failed to fetch overview data:", error);
+        res.status(500).json({ error: "Internal server error" });
+      }
+    });
 
     // Group API
-    // Get all Group
+    // Get all Groups with optional sorting by date and partial title search
+
     app.get("/groups", async (req, res) => {
       try {
-        const sortOrder = req.query.sort; // 'latest' or 'oldest'
+        const { sort, search } = req.query;
 
-        // Newest first (descending), Oldest first (ascending)
-        const sortOption = sortOrder === "oldest" ? 1 : -1;
+        const sortOption = sort === "oldest" ? 1 : -1;
+
+        const filter = {};
+        if (search) {
+          const escapedSearch = escapeRegex(search);
+          filter.$or = [
+            { groupName: { $regex: new RegExp(escapedSearch, "i") } },
+            { category: { $regex: new RegExp(escapedSearch, "i") } },
+            { description: { $regex: new RegExp(escapedSearch, "i") } },
+          ];
+        }
 
         const result = await groupCollection
-          .find()
+          .find(filter)
           .sort({ _id: sortOption })
           .toArray();
 
