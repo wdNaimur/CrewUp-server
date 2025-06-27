@@ -156,6 +156,28 @@ async function run() {
         res.status(500).json({ error: "Internal server error" });
       }
     });
+    // Get groups by category
+    app.get("/categories/:category", async (req, res) => {
+      const { category } = req.params;
+      const { email } = req.query;
+
+      try {
+        const filter = { category };
+        if (email) {
+          filter.userEmail = email;
+        }
+
+        const groups = await groupCollection
+          .find(filter)
+          .sort({ _id: -1 })
+          .toArray();
+        res.send(groups);
+      } catch (error) {
+        console.error("Error fetching category groups:", error);
+        res.status(500).json({ error: "Failed to fetch category groups" });
+      }
+    });
+
     // create new Group
     app.post("/groups", async (req, res) => {
       const newGroup = req.body;
